@@ -115,3 +115,33 @@ Make the loop seamless: end frame should match the opening idle notch.
 - Keep the notch panel the focal point; don't clutter the frame.
 - If generating a static image instead of video, capture the mid-stream moment
   (panel open, reply partially rendered) — it implies motion.
+
+---
+
+## Static image — what worked (Nano Banana 2)
+
+A still hero image was generated successfully with **Nano Banana 2** (good at
+legible text). Lessons that produced a usable result:
+
+- **Keep the whole laptop visible** on the desk — don't tell it to "zoom in," that
+  cropped the laptop out of frame entirely.
+- Control legibility via the **panel size**, not the camera. Spec the overlay as
+  roughly **one-third of the screen width** (and ~a quarter of the height):
+  big enough for readable text, small enough that the Teams call still shows around
+  it. ("Half / two-thirds" made the panel swallow the whole screen; one-third was
+  the sweet spot.)
+- Generative models tend to **drop the notch overlay** if it's small/far — making
+  the panel prominent (but not oversized) is what got it to render.
+
+**Working image prompt (paraphrase to reuse):** photorealistic MacBook Pro, whole
+laptop visible on a dark desk, Teams call in gallery view (soft, secondary), and a
+**near-black rounded panel ~one-third screen width hanging flush from the camera
+notch** (flat top edge touching the notch, rounded bottom corners), with a small
+grey "Ctrl+Shift+C to copy" line and the off-white reply text. Premium, dark,
+Apple-keynote style.
+
+**On-page copy** to render alongside the image is in the blurb section above.
+
+> Video generation (Sora/Veo/Runway) was attempted and was unreliable for the
+> streaming-text effect — revisit later, or just **screen-record the real app**,
+> which produces the genuine token-by-token stream for free.

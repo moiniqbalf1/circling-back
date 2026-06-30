@@ -18,24 +18,29 @@ The app is **built and nearly set up**. The reboot is done; BlackHole is live an
 audio routing is configured. Only one setup step remains (Accessibility) before
 the first end-to-end run.
 
+**The app is fully working end-to-end on the Mac mini.** Capture → transcribe →
+hotkey → LLM → overlay all verified together. Remaining work is the MacBook notch
+verification and the (future) website demo.
+
 | Piece | Status |
 |---|---|
-| Local LLM (Ollama + `llama3.2:3b`) | ✅ built + verified (`python -m llm.responder`) |
-| Notch overlay UI | ✅ built + verified (`python -m ui.overlay`) |
-| Whisper transcription | ✅ built, installed, untested (needs audio) |
-| Audio capture (BlackHole) | ✅ reboot done — BlackHole 2ch is **device index 1**; `DEVICE_INDEX = 1` set in `main.py` |
-| Multi-Output Device | ✅ created as **"Meeting Capture"** (BlackHole + speakers), set as system output |
-| Global hotkeys (Accessibility) | ⏳ Terminal still needs Accessibility permission granted |
-| Full wiring (`main.py`) | ⏳ built, not yet run end-to-end |
+| Local LLM (Ollama + `llama3.2:3b`) | ✅ verified; persona made wittier (few-shot + looser sampling) |
+| Notch overlay UI | ✅ verified; **stays on top** across apps + **hover-to-pin** (won't auto-collapse while hovered) |
+| Whisper transcription | ✅ verified live with real audio |
+| Audio capture (BlackHole) | ✅ verified; segfault fixed (see Known friction). BlackHole 2ch = **index 1**, `DEVICE_INDEX = 1` |
+| Multi-Output Device | ✅ **"Meeting Capture"** (BlackHole + speakers), system output |
+| Global hotkeys (Accessibility) | ✅ granted + working |
+| Full wiring (`main.py`) | ✅ run end-to-end, working |
+| MacBook notch verification | ⏳ not done — see `docs/MACBOOK_SETUP.md` (mini has no notch, renders a top-center pill) |
+| Website writeup + demo media | ⏳ blurb written (`docs/WEB_DEMO_BRIEF.md`); image/video WIP; interactive demo is future (`docs/FUTURE_IDEAS.md`) |
 
-**Resume point — do this next:**
-1. System Settings → Privacy & Security → **Accessibility** → enable **Terminal**,
-   then **fully quit (`Cmd+Q`) and reopen Terminal** so it takes effect.
-   (If hotkeys still don't fire, also enable Terminal under **Input Monitoring**.)
-2. `cd ~/Documents/corporate-ai-responses && source .venv/bin/activate`
-3. Play some audio (YouTube/podcast) so it routes through **Meeting Capture** → BlackHole.
-4. `python main.py` → wait a few seconds for the transcript to fill (needs ≥8 words)
-   → `Ctrl+Shift+G` to generate, `Ctrl+Shift+C` to copy.
+**To run it (Mac mini):**
+1. `cd ~/Documents/corporate-ai-responses && source .venv/bin/activate`
+2. Make sure **Meeting Capture** is the system output, then play some audio
+   (YouTube/podcast) or join a call so it routes through → BlackHole.
+3. `python main.py` → wait a few seconds for the transcript to fill (needs ≥8 words)
+   → `Ctrl+Shift+G` to generate, `Ctrl+Shift+C` to copy. Hover the panel to keep
+   it open while reading.
 
 Audio sanity check: with "Meeting Capture" selected you should still **hear** the
 audio. If it's silent, make sure Mac mini Speakers is ticked in the Multi-Output
@@ -43,9 +48,12 @@ Device and is the clock master (BlackHole has drift correction on).
 
 Dev machine is a **Mac mini** (no notch — overlay falls back to a top-center
 panel). The real deployment target is a **work MacBook**, where the true notch
-behavior should be verified before the UI is considered done.
+behavior should be verified before the UI is considered done — see
+`docs/MACBOOK_SETUP.md` for the full hand-off guide.
 
-A project writeup + screenshots for a personal website are planned for later.
+**Docs:** `docs/MACBOOK_SETUP.md` (MacBook bring-up), `docs/FUTURE_IDEAS.md`
+(packaging as an app + in-browser demo), `docs/WEB_DEMO_BRIEF.md` (website blurb +
+demo visuals brief).
 
 ---
 
@@ -181,11 +189,18 @@ The `.venv/` is gitignored. All Python deps live there, not globally.
      downmix + decimate ourselves rather than letting PortAudio convert.
   The MacBook's BlackHole is also 48 kHz, so keep both. Diagnose any recurrence
   from the crash `.ips` in `~/Library/Logs/DiagnosticReports/`.
-- **BlackHole needs a reboot** after install before it appears as a device — done.
+- **Overlay must stay on top across apps (fixed):** `Qt.Tool` maps to an
+  `NSPanel`, which auto-hides when its app deactivates — so the overlay vanished
+  the moment you clicked into the meeting app. `ui/overlay.py` calls
+  `setHidesOnDeactivate_(False)` on the native window to keep it pinned over other
+  apps and Spaces. It also pins open while hovered (won't auto-collapse).
+- **BlackHole needs a reboot** after install before it appears as a device — done
+  on the mini; will be needed again on the MacBook.
 - **Accessibility permission** is required for the global hotkeys to fire while
-  another app (the meeting) is focused — Terminal still needs this granted, then a
-  full quit/reopen. May also need Terminal under **Input Monitoring**.
+  another app (the meeting) is focused — granted on the mini. On the MacBook it'll
+  need granting again (Accessibility, and possibly Input Monitoring), then a full
+  quit/reopen of the terminal app.
 - **Mac mini has no notch** — the overlay renders as a top-center panel there;
-  test true notch fit on the MacBook.
+  test true notch fit on the MacBook (`docs/MACBOOK_SETUP.md`).
 - **Testing without a real meeting:** play any audio (YouTube, podcast) through the
   Multi-Output Device so Whisper has something to transcribe.
