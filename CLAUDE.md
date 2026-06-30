@@ -14,23 +14,32 @@ has used an LLM before.
 
 ## Current status (resume point)
 
-The app is **built and partially verified**. Remaining work is local machine
-setup that requires a reboot.
+The app is **built and nearly set up**. The reboot is done; BlackHole is live and
+audio routing is configured. Only one setup step remains (Accessibility) before
+the first end-to-end run.
 
 | Piece | Status |
 |---|---|
 | Local LLM (Ollama + `llama3.2:3b`) | ✅ built + verified (`python -m llm.responder`) |
 | Notch overlay UI | ✅ built + verified (`python -m ui.overlay`) |
 | Whisper transcription | ✅ built, installed, untested (needs audio) |
-| Audio capture (BlackHole) | ⏳ blocked on **reboot** — BlackHole won't appear as a device until then |
-| Full wiring (`main.py`) | ⏳ built, untested end-to-end |
+| Audio capture (BlackHole) | ✅ reboot done — BlackHole 2ch is **device index 1**; `DEVICE_INDEX = 1` set in `main.py` |
+| Multi-Output Device | ✅ created as **"Meeting Capture"** (BlackHole + speakers), set as system output |
+| Global hotkeys (Accessibility) | ⏳ Terminal still needs Accessibility permission granted |
+| Full wiring (`main.py`) | ⏳ built, not yet run end-to-end |
 
-**Next steps after reboot:**
-1. `cd ~/Documents/corporate-ai-responses && source .venv/bin/activate`
-2. `python -m audio.capture` → find the **BlackHole 2ch** index, set `DEVICE_INDEX` in `main.py`
-3. **Audio MIDI Setup** → create a Multi-Output Device (BlackHole + speakers), set as system output
-4. System Settings → Privacy & Security → **Accessibility** → enable Terminal (for global hotkeys)
-5. `python main.py` → play some audio → `Ctrl+Shift+G` to generate, `Ctrl+Shift+C` to copy
+**Resume point — do this next:**
+1. System Settings → Privacy & Security → **Accessibility** → enable **Terminal**,
+   then **fully quit (`Cmd+Q`) and reopen Terminal** so it takes effect.
+   (If hotkeys still don't fire, also enable Terminal under **Input Monitoring**.)
+2. `cd ~/Documents/corporate-ai-responses && source .venv/bin/activate`
+3. Play some audio (YouTube/podcast) so it routes through **Meeting Capture** → BlackHole.
+4. `python main.py` → wait a few seconds for the transcript to fill (needs ≥8 words)
+   → `Ctrl+Shift+G` to generate, `Ctrl+Shift+C` to copy.
+
+Audio sanity check: with "Meeting Capture" selected you should still **hear** the
+audio. If it's silent, make sure Mac mini Speakers is ticked in the Multi-Output
+Device and is the clock master (BlackHole has drift correction on).
 
 Dev machine is a **Mac mini** (no notch — overlay falls back to a top-center
 panel). The real deployment target is a **work MacBook**, where the true notch
@@ -157,11 +166,25 @@ The `.venv/` is gitignored. All Python deps live there, not globally.
 
 ## Known friction points
 
-- **Device index:** must identify the BlackHole input index (`python -m audio.capture`)
-  and set `DEVICE_INDEX` in `main.py` before live capture works.
-- **BlackHole needs a reboot** after install before it appears as a device.
+- **Device index:** BlackHole 2ch is currently **index 1** and `DEVICE_INDEX = 1`
+  is set in `main.py`. Re-check with `python -m audio.capture` if devices change.
+- **Audio capture segfault (fixed) — two causes, both in `audio/capture.py`:**
+  1. *No PortAudio callback under Qt.* A `sounddevice` callback fires on
+     CoreAudio's realtime thread; running Python there while Qt drives the main
+     thread segfaults (GIL / autorelease-pool clash — crash shows up in
+     `ffi_closure_SYSV` → `AdaptingInputOnlyProcess`). We now drain the stream
+     with blocking `stream.read()` in a normal background thread, so no Python
+     runs on the audio thread. An `atexit` handler stops that thread before
+     closing the stream (closing while a read is in flight also segfaults).
+  2. *Native rate/channels, resample in Python.* BlackHole is **48 kHz / 2ch**
+     but Whisper wants 16 kHz mono — we open at the native rate/channels and
+     downmix + decimate ourselves rather than letting PortAudio convert.
+  The MacBook's BlackHole is also 48 kHz, so keep both. Diagnose any recurrence
+  from the crash `.ips` in `~/Library/Logs/DiagnosticReports/`.
+- **BlackHole needs a reboot** after install before it appears as a device — done.
 - **Accessibility permission** is required for the global hotkeys to fire while
-  another app (the meeting) is focused.
+  another app (the meeting) is focused — Terminal still needs this granted, then a
+  full quit/reopen. May also need Terminal under **Input Monitoring**.
 - **Mac mini has no notch** — the overlay renders as a top-center panel there;
   test true notch fit on the MacBook.
 - **Testing without a real meeting:** play any audio (YouTube, podcast) through the
