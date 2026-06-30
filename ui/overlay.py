@@ -96,6 +96,10 @@ class OverlayWindow(QWidget):
             view = objc.objc_object(c_void_p=int(self.winId()))
             ns_window = view.window()
             ns_window.setLevel_(_NS_STATUS_WINDOW_LEVEL)
+            # Qt.Tool maps to an NSPanel, which hides itself whenever the app
+            # loses focus — so the overlay vanished the moment you switched to
+            # the meeting app. Keep it visible regardless of active app.
+            ns_window.setHidesOnDeactivate_(False)
             # Show across all Spaces and over fullscreen apps.
             can_join_all_spaces = 1 << 0
             fullscreen_auxiliary = 1 << 8
