@@ -22,7 +22,7 @@ from llm.responder import stream_response
 from ui.overlay import OverlayWindow
 
 # Index of the BlackHole input. Run `python -m audio.capture` to find yours.
-DEVICE_INDEX = 1
+DEVICE_INDEX = 0
 
 # Don't fire on tiny utterances like "yeah" / "right".
 MIN_TRANSCRIPT_WORDS = 8
