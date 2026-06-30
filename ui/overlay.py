@@ -24,7 +24,7 @@ COLLAPSED_W = 220     # ~ notch width
 COLLAPSED_H = 34      # ~ menu-bar / notch height
 EXPANDED_W = 520
 EXPANDED_H = 190
-AUTO_COLLAPSE_MS = 7000   # collapse this long after a response finishes
+AUTO_COLLAPSE_MS = 12000  # collapse this long after a response finishes (if not hovered)
 
 # AppKit window levels (from NSWindow.h). Menu bar is 24; status is 25.
 _NS_STATUS_WINDOW_LEVEL = 25
@@ -42,6 +42,8 @@ class OverlayWindow(QWidget):
         self._current_response = ""
         self._expanded = False
         self._fallback_mode = False  # True => Option A (below the notch)
+        self._awaiting_collapse = False  # True once a response finished and the
+                                         # auto-collapse timer is (or should be) armed
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -126,6 +128,7 @@ class OverlayWindow(QWidget):
 
     def collapse(self) -> None:
         self._expanded = False
+        self._awaiting_collapse = False
         self._current_response = ""
         self.label.setText("")
         self.status.setText("")
@@ -134,6 +137,7 @@ class OverlayWindow(QWidget):
 
     def start_new_response(self) -> None:
         self._collapse_timer.stop()
+        self._awaiting_collapse = False
         self._current_response = ""
         self.label.setText("")
         self.status.setText("Generating…")
@@ -147,13 +151,29 @@ class OverlayWindow(QWidget):
 
     def _on_finish(self) -> None:
         self.status.setText("Ctrl+Shift+C to copy")
-        self._collapse_timer.start(AUTO_COLLAPSE_MS)
+        self._awaiting_collapse = True
+        # Don't start counting down while the user is reading (hovering).
+        if not self.underMouse():
+            self._collapse_timer.start(AUTO_COLLAPSE_MS)
 
     def copy_text(self) -> None:
         if self._current_response.strip():
             pyperclip.copy(self._current_response)
             self.status.setText("Copied!")
             self._status_timer.start(1500)
+
+    # --- Hover-to-pin -------------------------------------------------------
+    def enterEvent(self, event):  # noqa: N802 - Qt override
+        """Pin the panel open while the mouse is over it."""
+        if self._awaiting_collapse:
+            self._collapse_timer.stop()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):  # noqa: N802 - Qt override
+        """Re-arm the auto-collapse once the mouse leaves."""
+        if self._awaiting_collapse:
+            self._collapse_timer.start(AUTO_COLLAPSE_MS)
+        super().leaveEvent(event)
 
     # --- Painting -----------------------------------------------------------
     def paintEvent(self, event):  # noqa: N802 - Qt override
