@@ -1,0 +1,21 @@
+# Audio capture
+sounddevice
+
+# Local speech-to-text (needs ffmpeg on PATH)
+faster-whisper
+
+# Local LLM client (talks to Ollama on http://localhost:11434)
+ollama
+
+# UI
+PyQt6
+pyperclip
+
+# Global hotkeys (Accessibility permission required on macOS)
+pynput
+
+# Numerics
+numpy
+
+# macOS notch window positioning (AppKit access via pyobjc Cocoa bindings)
+pyobjc-framework-Cocoa
