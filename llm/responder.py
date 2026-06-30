@@ -5,6 +5,8 @@ leaves the machine. Swap MODEL to a beefier local model (e.g. "qwen2.5:7b") if t
 jargon feels flat — remember to `ollama pull` it first.
 """
 
+import random
+
 import ollama
 
 from llm.prompt import SYSTEM_PROMPT, build_prompt
@@ -25,7 +27,16 @@ def stream_response(transcript: str, on_token) -> str:
             {"role": "system", "content": SYSTEM_PROMPT},
             *build_prompt(transcript),
         ],
-        options={"temperature": 0.7, "num_predict": 120},
+        options={
+            # Higher temp + top_p => wittier, more varied slop. A fresh random
+            # seed each call keeps identical transcripts from repeating verbatim.
+            # repeat_penalty stops the small model looping on its own jargon.
+            "temperature": 1.0,
+            "top_p": 0.95,
+            "repeat_penalty": 1.15,
+            "num_predict": 160,
+            "seed": random.randint(0, 2**31 - 1),
+        },
         stream=True,
     )
     for chunk in stream:
